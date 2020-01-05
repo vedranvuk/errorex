@@ -13,8 +13,10 @@ import (
 // ErrorEx is an extended error type which provides utilities for
 // error inheritance pattern.
 type ErrorEx struct {
-	// cause
+	// cause holds the cause error if this error was derived with Cause().
 	cause error
+	// data holds the data if this error was derived with Data().
+	data interface{}
 	// err is optionally wrapped error.
 	err error
 	// txt is this error text/message/format string.
@@ -42,12 +44,10 @@ func NewFormat(format string) (err *ErrorEx) {
 }
 
 // Error implements the error interface. It uses a custom printing
-// method that works in the following way:
-//
-//  ErrPackage = New("package")
+// scheme explained in the doc.
 func (ee *ErrorEx) Error() (message string) {
 	message = ee.txt
-	if ee.fmt {
+	if ee.fmt || ee.data != nil {
 		message = ""
 	}
 	if ee.cause != nil {
@@ -58,7 +58,7 @@ func (ee *ErrorEx) Error() (message string) {
 		if cause := eex.Causer(); cause != nil {
 			stack = append(stack, cause.Error())
 		} else {
-			if eex.fmt {
+			if eex.fmt || eex.data != nil {
 				continue
 			}
 		}
@@ -110,8 +110,8 @@ func (ee *ErrorEx) Wrap(message string) *ErrorEx {
 	return &ErrorEx{err: ee, txt: message}
 }
 
-// WrapFormat wraps this error with a new error which will be used
-// exclusively as a parent to errors derived directly from that error.
+// WrapFormat wraps this error with a new non-printable error whose
+// message is a format string to derived errors.
 // The resulting error txt is used as a format string to WithArgs().
 // The resulting error is skipped when printing the error chain but
 // remains in the error chan and responds to Is() and As() properly.
@@ -155,4 +155,15 @@ func (ee *ErrorEx) CauseArgs(err error, args ...interface{}) *ErrorEx {
 // Causer returns the wrapped caused error, which could be nil.
 func (ee *ErrorEx) Causer() error {
 	return ee.cause
+}
+
+// Data returns a new derived ErrorEx that wraps error data.
+func (ee *ErrorEx) Data(message string, data interface{}) *ErrorEx {
+	return &ErrorEx{data: data, err: ee, txt: message}
+}
+
+// Data returns a new derived ErrorEx that wraps error data
+// and uses this error as a format string for args.
+func (ee *ErrorEx) DataArgs(data interface{}, args ...interface{}) *ErrorEx {
+	return &ErrorEx{data: data, err: ee, txt: fmt.Sprintf(ee.txt, args...)}
 }
