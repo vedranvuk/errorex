@@ -47,7 +47,7 @@ func NewFormat(format string) (err *ErrorEx) {
 // scheme explained in the doc.
 func (ee *ErrorEx) Error() (message string) {
 	message = ee.txt
-	if ee.fmt || ee.data != nil {
+	if ee.fmt {
 		message = ""
 	}
 	if ee.cause != nil {
@@ -58,7 +58,7 @@ func (ee *ErrorEx) Error() (message string) {
 		if cause := eex.Causer(); cause != nil {
 			stack = append(stack, cause.Error())
 		} else {
-			if eex.fmt || eex.data != nil {
+			if eex.fmt {
 				continue
 			}
 		}
@@ -166,4 +166,9 @@ func (ee *ErrorEx) Data(message string, data interface{}) *ErrorEx {
 // and uses this error as a format string for args.
 func (ee *ErrorEx) DataArgs(data interface{}, args ...interface{}) *ErrorEx {
 	return &ErrorEx{data: data, err: ee, txt: fmt.Sprintf(ee.txt, args...)}
+}
+
+// Datas returns the data stored with Data or DataArgs.
+func (ee *ErrorEx) Datas() interface{} {
+	return ee.data
 }

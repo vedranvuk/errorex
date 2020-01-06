@@ -162,3 +162,27 @@ func TestMultiLevel(t *testing.T) {
 		t.Fatalf("Multilevel fail, want 'command: method > detail '42' < package: method > detail: '69' < middleware: method > detail: '1337'', got %s", s)
 	}
 }
+
+func TestData(t *testing.T) {
+
+	type Data struct {
+		Line   int
+		Column int
+	}
+
+	base := New("base").WrapFormat("error at '%d:%d'")
+
+	err := base.DataArgs(&Data{32, 64}, 32, 64)
+	if err.Error() != "base: error at '32:64'" {
+		t.Fatal("Data failed")
+	}
+
+	data, ok := (err.Datas()).(*Data)
+	if !ok {
+		t.Fatal("Data failed")
+	}
+	if data.Line != 32 || data.Column != 64 {
+		t.Fatal("Data failed")
+	}
+
+}
