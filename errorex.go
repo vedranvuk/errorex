@@ -84,14 +84,15 @@ func (ee *ErrorEx) Error() (message string) {
 }
 
 // is is the implementation of Is.
-func (ee *ErrorEx) is(target, cause error) bool {
-	if ee == target {
-		return true
+func (ee *ErrorEx) is(target, cause error) (is bool) {
+	is = ee == target
+	if !is {
+		is = errors.Is(ee.err, target)
 	}
-	if eex, ok := (ee.err).(*ErrorEx); ok {
-		return eex.is(target, cause)
+	if !is {
+		is = errors.Is(cause, target)
 	}
-	return errors.Is(cause, target)
+	return
 }
 
 // Is implements errors.Is().

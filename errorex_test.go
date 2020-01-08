@@ -22,6 +22,10 @@ func TestWrap(t *testing.T) {
 		ErrPackageB = NewFormat("Error %d")
 	)
 
+	if truth := errors.Is(ErrPackageA, ErrPackageA); !truth {
+		t.Fatalf("Is [-1] failed, want 'true', got '%t'", truth)
+	}
+
 	if truth := errors.Is(ErrPackageAn, ErrPackageA2); !truth {
 		t.Fatalf("Is [0] failed, want 'true', got '%t'", truth)
 	}
