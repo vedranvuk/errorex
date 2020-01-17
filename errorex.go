@@ -55,7 +55,7 @@ func (ee *ErrorEx) Error() (message string) {
 	}
 	stack := []string{}
 	for eex, ok := (ee.err).(*ErrorEx); ok; eex, ok = (eex.err).(*ErrorEx) {
-		if cause := eex.Causer(); cause != nil {
+		if cause := eex.Cause(); cause != nil {
 			stack = append(stack, cause.Error())
 		} else {
 			if eex.fmt {
@@ -122,54 +122,54 @@ func (ee *ErrorEx) WrapFormat(format string) (err *ErrorEx) {
 	return
 }
 
-// WithArgs derives a new error whose message will be formatted using
+// WrapArgs derives a new error whose message will be formatted using
 // specified args and this error message as a format string.
-// WithArgs should be used on errors which were constructed using
+// WrapArgs should be used on errors which were constructed using
 // NewFormat or WrapFormat and a format string.
-func (ee *ErrorEx) WithArgs(args ...interface{}) *ErrorEx {
+func (ee *ErrorEx) WrapArgs(args ...interface{}) *ErrorEx {
 	return ee.Wrap(fmt.Sprintf(ee.txt, args...))
 }
 
-// Cause returns a new derived ErrorEx that wraps a cause error.
+// WrapCause returns a new derived ErrorEx that wraps a cause error.
 // Calling errors.Is() on returned error returns true for target
 // being the or a parent of both the new error and the cause error
 // that it wraps.
 // Meaning:
-//  ErrE := New("ErrA").Wrap("ErrB").Cause("ErrE", New("ErrC").Wrap("ErrD"))
+//  ErrE := New("ErrA").Wrap("ErrB").WrapCause("ErrE", New("ErrC").Wrap("ErrD"))
 //	errors.Is(ErrE, ErrA) // true
 //  errors.Is(ErrE, ErrC) // true
 //  fmt.Println(ErrF) // ErrA: ErrB > ErrC < ErrD: ErrE; ErrF
 // Derived ErrorEx unwraps to this error.
 // Wrapped cause error is published by Causer().
-func (ee *ErrorEx) Cause(message string, err error) *ErrorEx {
+func (ee *ErrorEx) WrapCause(message string, err error) *ErrorEx {
 	return &ErrorEx{cause: err, err: ee, txt: message}
 }
 
-// CauseArgs derives a new error which wraps a cause error and formats
+// WrapCauseArgs derives a new error which wraps a cause error and formats
 // its error message from this error message as a format string and
 // specified args.
-// CauseArgs should be used on errors with a format string error message.
-func (ee *ErrorEx) CauseArgs(err error, args ...interface{}) *ErrorEx {
+// WrapCauseArgs should be used on errors with a format string error message.
+func (ee *ErrorEx) WrapCauseArgs(err error, args ...interface{}) *ErrorEx {
 	return &ErrorEx{cause: err, err: ee, txt: fmt.Sprintf(ee.txt, args...)}
 }
 
-// Causer returns the wrapped caused error, which could be nil.
-func (ee *ErrorEx) Causer() error {
+// Cause returns the wrapped caused error, which could be nil.
+func (ee *ErrorEx) Cause() error {
 	return ee.cause
 }
 
-// Data returns a new derived ErrorEx that wraps error data.
-func (ee *ErrorEx) Data(message string, data interface{}) *ErrorEx {
+// WrapData returns a new derived ErrorEx that wraps error data.
+func (ee *ErrorEx) WrapData(message string, data interface{}) *ErrorEx {
 	return &ErrorEx{data: data, err: ee, txt: message}
 }
 
 // Data returns a new derived ErrorEx that wraps error data
 // and uses this error as a format string for args.
-func (ee *ErrorEx) DataArgs(data interface{}, args ...interface{}) *ErrorEx {
+func (ee *ErrorEx) WrapDataArgs(data interface{}, args ...interface{}) *ErrorEx {
 	return &ErrorEx{data: data, err: ee, txt: fmt.Sprintf(ee.txt, args...)}
 }
 
-// Datas returns the data stored with Data or DataArgs.
-func (ee *ErrorEx) Datas() interface{} {
+// Data returns the data stored with Data or DataArgs.
+func (ee *ErrorEx) Data() interface{} {
 	return ee.data
 }

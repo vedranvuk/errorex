@@ -50,7 +50,7 @@ func TestWrap(t *testing.T) {
 		t.Fatalf("Error failed, want 'PackageA: Error 2 > Warning 1', got '%s'", msg)
 	}
 
-	ErrPackageAx := ErrPackageAn.WithArgs(42)
+	ErrPackageAx := ErrPackageAn.WrapArgs(42)
 	if msg := ErrPackageAx.Error(); msg != "PackageA: Error 2 > Warning 42" {
 		t.Fatalf("Format() error, want 'PackageA: Error 2 > Warning 42', got '%s'", msg)
 	}
@@ -67,9 +67,9 @@ func TestWrap(t *testing.T) {
 		t.Fatalf("Is [6] failed, want 'true', got '%t'", truth)
 	}
 
-	ErrPackageBx := ErrPackageB.WithArgs(69)
+	ErrPackageBx := ErrPackageB.WrapArgs(69)
 	if msg := ErrPackageBx.Error(); msg != "Error 69" {
-		t.Fatalf("WithArgs() failed, want 'Error 69', got '%s'", msg)
+		t.Fatalf("WrapArgs() failed, want 'Error 69', got '%s'", msg)
 	}
 
 }
@@ -90,7 +90,7 @@ func TestIs(t *testing.T) {
 
 	funcA := func() error {
 		err := funcB()
-		return ErrDerivedA.Cause("new", err)
+		return ErrDerivedA.WrapCause("new", err)
 	}
 
 	err := funcA()
@@ -116,7 +116,7 @@ func TestCause(t *testing.T) {
 	ErrC := New("ErrC")
 	ErrD := ErrC.WrapFormat("Err%s")
 
-	ErrE := ErrB.Cause("ErrE", ErrD.WithArgs("X"))
+	ErrE := ErrB.WrapCause("ErrE", ErrD.WrapArgs("X"))
 
 	if s := ErrE.Error(); s != "ErrA: ErrB > ErrE < ErrC: ErrX" {
 		t.Fatalf("TestCause failed, want 'ErrA: ErrB > ErrE < ErrC: ErrX', got '%s'", s)
@@ -140,7 +140,7 @@ var (
 type Middle struct{}
 
 func (m *Middle) Bad() error {
-	return ErrMiddleSubVar.WithArgs("1337")
+	return ErrMiddleSubVar.WrapArgs("1337")
 }
 
 type Pkg struct {
@@ -148,7 +148,7 @@ type Pkg struct {
 }
 
 func (p *Pkg) Bad() error {
-	return ErrPkgSubVar.CauseArgs(p.middle.Bad(), "69")
+	return ErrPkgSubVar.WrapCauseArgs(p.middle.Bad(), "69")
 }
 
 type App struct {
@@ -156,7 +156,7 @@ type App struct {
 }
 
 func (a *App) Bad() error {
-	return ErrAppSubVar.CauseArgs(a.pkg.Bad(), "42")
+	return ErrAppSubVar.WrapCauseArgs(a.pkg.Bad(), "42")
 }
 
 func TestMultiLevel(t *testing.T) {
@@ -176,12 +176,12 @@ func TestData(t *testing.T) {
 
 	base := New("base").WrapFormat("error at '%d:%d'")
 
-	err := base.DataArgs(&Data{32, 64}, 32, 64)
+	err := base.WrapDataArgs(&Data{32, 64}, 32, 64)
 	if err.Error() != "base: error at '32:64'" {
 		t.Fatal("Data failed")
 	}
 
-	data, ok := (err.Datas()).(*Data)
+	data, ok := (err.Data()).(*Data)
 	if !ok {
 		t.Fatal("Data failed")
 	}
