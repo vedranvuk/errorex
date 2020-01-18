@@ -11,7 +11,7 @@ import (
 )
 
 // ErrorEx is an extended error type which provides utilities for
-// error inheritance pattern and custom data payloads.
+// error inheritance, causes and custom data payloads.
 type ErrorEx struct {
 	// cause is the stored cause error.
 	cause error
