@@ -24,7 +24,7 @@ var (
 type Middle struct{}
 
 func (m *Middle) Bad() error {
-	return ErrMiddleSubVar.WithArgs("1337")
+	return ErrMiddleSubVar.WrapArgs("1337")
 }
 
 type Pkg struct {
@@ -32,7 +32,7 @@ type Pkg struct {
 }
 
 func (p *Pkg) Bad() error {
-	return ErrPkgSubVar.CauseArgs(p.middle.Bad(), "69")
+	return ErrPkgSubVar.WrapCauseArgs(p.middle.Bad(), "69")
 }
 
 type App struct {
@@ -40,7 +40,7 @@ type App struct {
 }
 
 func (a *App) Bad() error {
-	return ErrAppSubVar.CauseArgs(a.pkg.Bad(), "42")
+	return ErrAppSubVar.WrapCauseArgs(a.pkg.Bad(), "42")
 }
 
 func TestMultiLevel(t *testing.T) {
@@ -66,7 +66,7 @@ func unmarshal(name string) error {
 
 	data := ""
 	if err := json.Unmarshal([]byte{}, data); err != nil {
-		return ErrUnmarshal.CauseArgs(err, name)
+		return ErrUnmarshal.WrapCauseArgs(err, name)
 	}
 	return nil
 }
@@ -77,7 +77,7 @@ type ErrorData struct {
 }
 
 func gotopos() error {
-	return ErrInvalidPos.DataArgs(&ErrorData{32, 64}, 32, 64)
+	return ErrInvalidPos.WrapDataArgs(&ErrorData{32, 64}, 32, 64)
 }
 
 func main() {
