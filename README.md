@@ -2,6 +2,8 @@
 
 Package errorex provides additional error functionality. For now, implements a single type that helps with common error usage patterns introduced in `go1.13`, which it requires.
 
+API reflects the mostly-implemented-by-other-error-packages approach with Causer interfaces.
+
 ## Example
 
 Errors can be derived and derived errors will respond properly to errors.Is().
@@ -53,7 +55,7 @@ func TestMultiLevel(t *testing.T) {
 
 ```
 
-ErrorEx can also carry an error that caused _this_ error, and custom data.
+ErrorEx can also carry an error that caused _this_ error (retrievable by ErrorEx.Cause(), and custom data.
 
 ```
 var (
