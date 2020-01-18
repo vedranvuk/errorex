@@ -11,11 +11,11 @@ import (
 )
 
 // ErrorEx is an extended error type which provides utilities for
-// error inheritance pattern.
+// error inheritance pattern and custom data payloads.
 type ErrorEx struct {
-	// cause holds the cause error if this error was derived with Cause().
+	// cause is the stored cause error.
 	cause error
-	// data holds the data if this error was derived with Data().
+	// data is the stored custom data.
 	data interface{}
 	// err is optionally wrapped error.
 	err error
@@ -43,8 +43,14 @@ func NewFormat(format string) (err *ErrorEx) {
 	return
 }
 
-// Error implements the error interface. It uses a custom printing
-// scheme explained in the doc.
+// Error implements the error interface. It uses a custom printing scheme:
+// First error in the chain is separated with a ':' from derived error messages.
+// Last error in the chain is separated from the error it derives from with a '>'.
+// Multiple levels of derived errors are separated with a ';'.
+// Cause errors format the same way and are appended to the error message after
+// prefix '<'.
+// Example:
+//  mypackage: subsystem error; funcerror > detailederror < thirdpartypackage: subsystem error > detailederror
 func (ee *ErrorEx) Error() (message string) {
 	message = ee.txt
 	if ee.fmt {
@@ -113,7 +119,9 @@ func (ee *ErrorEx) Wrap(message string) *ErrorEx {
 
 // WrapFormat wraps this error with a new non-printable error whose
 // message is a format string to derived errors.
-// The resulting error txt is used as a format string to WithArgs().
+// The resulting error txt is used as a format string for error text
+// of derivation functions WrapArgs, WrapCauseArgs and WrapDataArgs.
+//
 // The resulting error is skipped when printing the error chain but
 // remains in the error chan and responds to Is() and As() properly.
 func (ee *ErrorEx) WrapFormat(format string) (err *ErrorEx) {
@@ -132,44 +140,44 @@ func (ee *ErrorEx) WrapArgs(args ...interface{}) *ErrorEx {
 
 // WrapCause returns a new derived ErrorEx that wraps a cause error.
 // Calling errors.Is() on returned error returns true for target
-// being the or a parent of both the new error and the cause error
+// being the parent of both the returned error and the cause error
 // that it wraps.
 // Meaning:
 //  ErrE := New("ErrA").Wrap("ErrB").WrapCause("ErrE", New("ErrC").Wrap("ErrD"))
-//	errors.Is(ErrE, ErrA) // true
+//  errors.Is(ErrE, ErrA) // true
 //  errors.Is(ErrE, ErrC) // true
 //  fmt.Println(ErrF) // ErrA: ErrB > ErrC < ErrD: ErrE; ErrF
 // Derived ErrorEx unwraps to this error.
-// Wrapped cause error is published by Causer().
+// Wrapped cause error is retrievable with Cause().
 func (ee *ErrorEx) WrapCause(message string, err error) *ErrorEx {
 	return &ErrorEx{cause: err, err: ee, txt: message}
 }
 
 // WrapCauseArgs derives a new error which wraps a cause error and formats
-// its error message from this error message as a format string and
-// specified args.
-// WrapCauseArgs should be used on errors with a format string error message.
+// its error message from specified args and this error message as a format
+// string. See WrapCause for more details.
 func (ee *ErrorEx) WrapCauseArgs(err error, args ...interface{}) *ErrorEx {
 	return &ErrorEx{cause: err, err: ee, txt: fmt.Sprintf(ee.txt, args...)}
 }
 
-// Cause returns the wrapped caused error, which could be nil.
+// Cause returns the error that caused this error, which could be nil.
 func (ee *ErrorEx) Cause() error {
 	return ee.cause
 }
 
-// WrapData returns a new derived ErrorEx that wraps error data.
+// WrapData returns a new derived ErrorEx that wraps custom data.
 func (ee *ErrorEx) WrapData(message string, data interface{}) *ErrorEx {
 	return &ErrorEx{data: data, err: ee, txt: message}
 }
 
-// Data returns a new derived ErrorEx that wraps error data
-// and uses this error as a format string for args.
+// WrapDataArgs derives a new error which wraps custom data and formats
+// its error message from specified args and this error message as a format
+// string. See WrapData for more details.
 func (ee *ErrorEx) WrapDataArgs(data interface{}, args ...interface{}) *ErrorEx {
 	return &ErrorEx{data: data, err: ee, txt: fmt.Sprintf(ee.txt, args...)}
 }
 
-// Data returns the data stored with Data or DataArgs.
+// Data returns custom data stored in this error, which could be nil.
 func (ee *ErrorEx) Data() interface{} {
 	return ee.data
 }
