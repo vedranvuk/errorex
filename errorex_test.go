@@ -190,3 +190,14 @@ func TestData(t *testing.T) {
 	}
 
 }
+
+func TestExtra(t *testing.T) {
+	err := New("base error")
+	err.Extra(New("Extra 1"))
+	err.Extra(New("Extra 2"))
+	err.Extra(New("Extra 3"))
+	s := err.Error()
+	if s != "base error; Extra 1; Extra 2; Extra 3" {
+		t.Fatal("Extra failed")
+	}
+}

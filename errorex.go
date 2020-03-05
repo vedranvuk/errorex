@@ -12,6 +12,7 @@ import (
 
 // ErrorEx is an extended error type which provides utilities for
 // error inheritance, causes and custom data payloads.
+// ErrorEx is not safe for concurrent use.
 type ErrorEx struct {
 	// cause is the stored cause error.
 	cause error
@@ -24,6 +25,8 @@ type ErrorEx struct {
 	// fmt specifies if this error is a placeholder error whose
 	// txt is used as a format string for derived errors.
 	fmt bool
+	// Extra are extra errors carried with this error.
+	extra []error
 }
 
 // New returns a new ErrorEx and sets its' message.
@@ -48,10 +51,13 @@ func NewFormat(format string) (err *ErrorEx) {
 // Last error in the chain is separated from the error it derives from with a '>'.
 // Multiple levels of derived errors are separated with a ';'.
 // Cause errors format the same way and are appended to the error message after
+// Extra errors carried by an error are separated by ;
 // prefix '<'.
 // Example:
-//  mypackage: subsystem error; funcerror > detailederror < thirdpartypackage: subsystem error > detailederror
+//  mypackage: subsystem error; funcerror > detailederror; extra error < thirdpartypackage: subsystem error > detailederror
 func (ee *ErrorEx) Error() (message string) {
+
+	// Set base message.
 	message = ee.txt
 	if ee.fmt {
 		message = ""
@@ -59,6 +65,8 @@ func (ee *ErrorEx) Error() (message string) {
 	if ee.cause != nil {
 		message = fmt.Sprintf("%s < %v", message, ee.cause)
 	}
+
+	// Build wrap stack.
 	stack := []string{}
 	for eex, ok := (ee.err).(*ErrorEx); ok; eex, ok = (eex.err).(*ErrorEx) {
 		if cause := eex.Cause(); cause != nil {
@@ -70,23 +78,34 @@ func (ee *ErrorEx) Error() (message string) {
 		}
 		stack = append(stack, eex.txt)
 	}
-	if len(stack) == 0 {
-		return
-	}
-	if len(stack) == 1 {
-		return fmt.Sprintf("%s: %s", stack[0], message)
-	}
-	msg := fmt.Sprintf("%s:", stack[len(stack)-1])
-	stack = stack[:len(stack)-1]
-	for len(stack) > 0 {
+
+	// Format stack.
+	if len(stack) > 0 {
 		if len(stack) == 1 {
-			msg = fmt.Sprintf("%s %s", msg, stack[len(stack)-1])
+			message = fmt.Sprintf("%s: %s", stack[0], message)
 		} else {
-			msg = fmt.Sprintf("%s %s;", msg, stack[len(stack)-1])
+			msg := fmt.Sprintf("%s:", stack[len(stack)-1])
+			stack = stack[:len(stack)-1]
+			for len(stack) > 0 {
+				if len(stack) == 1 {
+					msg = fmt.Sprintf("%s %s", msg, stack[len(stack)-1])
+				} else {
+					msg = fmt.Sprintf("%s %s;", msg, stack[len(stack)-1])
+				}
+				stack = stack[:len(stack)-1]
+			}
+			message = fmt.Sprintf("%s > %s", msg, message)
 		}
-		stack = stack[:len(stack)-1]
+
 	}
-	return fmt.Sprintf("%s > %s", msg, message)
+
+	// Append extra.
+	if len(ee.extra) > 0 {
+		for _, ex := range ee.extra {
+			message += fmt.Sprintf("; %s", ex.Error())
+		}
+	}
+	return
 }
 
 // is is the implementation of Is.
@@ -180,4 +199,14 @@ func (ee *ErrorEx) WrapDataArgs(data interface{}, args ...interface{}) *ErrorEx 
 // Data returns custom data stored in this error, which could be nil.
 func (ee *ErrorEx) Data() interface{} {
 	return ee.data
+}
+
+// Extra appends an extra error to this error.
+func (ee *ErrorEx) Extra(err error) {
+	ee.extra = append(ee.extra, err)
+}
+
+// Extras returns extra errors.
+func (ee *ErrorEx) Extras() []error {
+	return ee.extra
 }
