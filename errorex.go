@@ -56,7 +56,6 @@ func NewFormat(format string) (err *ErrorEx) {
 // Example:
 //  mypackage: subsystem error; funcerror > detailederror; extra error < thirdpartypackage: subsystem error > detailederror
 func (ee *ErrorEx) Error() (message string) {
-
 	// Set base message.
 	message = ee.txt
 	if ee.fmt {
@@ -65,7 +64,6 @@ func (ee *ErrorEx) Error() (message string) {
 	if ee.cause != nil {
 		message = fmt.Sprintf("%s < %v", message, ee.cause)
 	}
-
 	// Build wrap stack.
 	stack := []string{}
 	for eex, ok := (ee.err).(*ErrorEx); ok; eex, ok = (eex.err).(*ErrorEx) {
@@ -78,7 +76,6 @@ func (ee *ErrorEx) Error() (message string) {
 		}
 		stack = append(stack, eex.txt)
 	}
-
 	// Format stack.
 	if len(stack) > 0 {
 		if len(stack) == 1 {
@@ -98,7 +95,6 @@ func (ee *ErrorEx) Error() (message string) {
 		}
 
 	}
-
 	// Append extra.
 	if len(ee.extra) > 0 {
 		for _, ex := range ee.extra {
