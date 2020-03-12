@@ -104,6 +104,23 @@ func main() {
 
 ```
 
+If you have, say, some sort of a sink function that manages multiple objects that return errors you can use Extra() to store those errors and Extras() to retrieve them later.
+
+```
+err := New("base error")
+err.Extra(New("Extra 1"))
+err.Extra(New("Extra 2"))
+err.Extra(New("Extra 3"))
+
+// range over extra errors.
+for _, e := range err.Extras() {
+	_ = e
+}
+
+fmt.Println(err)
+// Output: base error; Extra 1; Extra 2; Extra 3
+```
+
 ## Status
 
 Work in progress, subject to change.

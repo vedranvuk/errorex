@@ -52,7 +52,6 @@ func NewFormat(format string) (err *ErrorEx) {
 // Multiple levels of derived errors are separated with a ';'.
 // Cause errors format the same way and are appended to the error message after
 // Extra errors carried by an error are separated by ;
-// prefix '<'.
 // Example:
 //  mypackage: subsystem error; funcerror > detailederror; extra error < thirdpartypackage: subsystem error > detailederror
 func (ee *ErrorEx) Error() (message string) {
