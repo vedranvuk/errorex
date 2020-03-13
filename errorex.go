@@ -196,9 +196,10 @@ func (ee *ErrorEx) Data() interface{} {
 	return ee.data
 }
 
-// Extra appends an extra error to this error.
-func (ee *ErrorEx) Extra(err error) {
+// Extra appends an extra error to this error and returns self.
+func (ee *ErrorEx) Extra(err error) *ErrorEx {
 	ee.extra = append(ee.extra, err)
+	return ee
 }
 
 // Extras returns extra errors.
