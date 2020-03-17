@@ -46,19 +46,63 @@ func NewFormat(format string) (err *ErrorEx) {
 	return
 }
 
-// Error implements the error interface. It uses a custom printing scheme:
-// First error in the chain is separated with a ':' from derived error messages.
-// Last error in the chain is separated from the error it derives from with a '>'.
-// Multiple levels of derived errors are separated with a ';'.
-// Cause errors format the same way and are appended to the error message after
-// Extra errors carried by an error are separated by ;
+// extrastring returns preformated extra error messages as a string.
+func (ee *ErrorEx) extrastring() (message string) {
+	if len(ee.extra) > 0 {
+		for _, ex := range ee.extra {
+			message += fmt.Sprintf(" + %s", ex.Error())
+		}
+	}
+	return
+}
+
+// Error implements the error interface.
+//
+// It uses a custom printing scheme:
+//
+// First error in the chain is always separated with a ':' from derived error messages.
+// Wrapped errors are separated with a ';' if there are more than 3 wrap levels and the
+// error is between 3rd and last level.
+// Last error in the wrap stack is always separated with a '>' unless it directly wraps
+// the base error in which case it is separated by ':'.
+//
 // Example:
-//  mypackage: subsystem error; funcerror > detailederror; extra error < thirdpartypackage: subsystem error > detailederror
+//  New("base").Wrap("sub1").Error()
+//  Output: base: sub1
+//
+// Example:
+//  New("base").Wrap("sub1").Wrap("sub2").Error()
+//  Output: base: sub1 > sub2
+//
+// Example:
+//  New("base").Wrap("sub1").Wrap("sub2").Wrap("sub3").Error()
+//  Output: base: sub1; sub2 > sub3
+//
+// Example:
+//  New("base").Wrap("sub1").Wrap("sub2").Wrap("sub3").Wrap("sub4").Error()
+//  Output: base: sub1; sub2; sub3 > sub4
+//
+// Cause errors format the same way and are appended to final error after a '<' prefix.
+//
+// Example:
+//  New("base").WrapCause("error", New("cause"))
+//  Output: base: error < cause
+//
+// Extra errors carried by an error are appended and separated by ' + '
+//
+// Example:
+//  New("base").Wrap("sub").Extra(New("extra"))
+//  Output: base: sub + extra
+//
+// Errors created with NewFormat and WrapFormat are format placeholder errors and are
+// not printed when printing the wrap chain.
+//
+// Errors with an empty message are skipped when printing, regardless if they carry
+// causes or extra errors.
 func (ee *ErrorEx) Error() (message string) {
 	// Set base message.
-	message = ee.txt
-	if ee.fmt {
-		message = ""
+	if !ee.fmt {
+		message = ee.txt
 	}
 	if ee.cause != nil {
 		message = fmt.Sprintf("%s < %v", message, ee.cause)
@@ -66,14 +110,13 @@ func (ee *ErrorEx) Error() (message string) {
 	// Build wrap stack.
 	stack := []string{}
 	for eex, ok := (ee.err).(*ErrorEx); ok; eex, ok = (eex.err).(*ErrorEx) {
-		if cause := eex.Cause(); cause != nil {
-			stack = append(stack, cause.Error())
-		} else {
-			if eex.fmt {
-				continue
-			}
+		if eex.fmt || len(eex.txt) == 0 {
+			continue
 		}
-		stack = append(stack, eex.txt)
+		stack = append(stack, eex.txt+eex.extrastring())
+		if cause := eex.Cause(); cause != nil {
+			stack[len(stack)-1] += fmt.Sprintf(" < %s", cause.Error())
+		}
 	}
 	// Format stack.
 	if len(stack) > 0 {
@@ -92,14 +135,9 @@ func (ee *ErrorEx) Error() (message string) {
 			}
 			message = fmt.Sprintf("%s > %s", msg, message)
 		}
-
 	}
 	// Append extra.
-	if len(ee.extra) > 0 {
-		for _, ex := range ee.extra {
-			message += fmt.Sprintf("; %s", ex.Error())
-		}
-	}
+	message += ee.extrastring()
 	return
 }
 
@@ -132,29 +170,40 @@ func (ee *ErrorEx) Wrap(message string) *ErrorEx {
 }
 
 // WrapFormat wraps this error with a new non-printable error whose
-// message is a format string to derived errors.
-// The resulting error txt is used as a format string for error text
-// of derivation functions WrapArgs, WrapCauseArgs and WrapDataArgs.
+// message is a format string to errors further derived from it.
+//
+// Resulting error can be formatted to a derived error with WrapArgs,
+// WrapCauseArgs and WrapDataArgs.
 //
 // The resulting error is skipped when printing the error chain but
-// remains in the error chan and responds to Is() and As() properly.
+// remains in the error chain and responds to Is() and As() properly.
 func (ee *ErrorEx) WrapFormat(format string) (err *ErrorEx) {
 	err = ee.Wrap(format)
 	err.fmt = true
 	return
 }
 
+// autoformat returns a formatted error message using this error message
+// as a format string and specified args if this error is a format error.
+// Otherwise, returns args as a single string separated by single space.
+func (ee *ErrorEx) autoformat(args ...interface{}) string {
+	if ee.fmt {
+		return fmt.Sprintf(ee.txt, args...)
+	}
+	return fmt.Sprint(args...)
+}
+
 // WrapArgs derives a new error whose message will be formatted using
 // specified args and this error message as a format string.
 // WrapArgs should be used on errors which were constructed using
-// NewFormat or WrapFormat and a format string.
+// NewFormat or WrapFormat using a format string as error message.
 func (ee *ErrorEx) WrapArgs(args ...interface{}) *ErrorEx {
-	return ee.Wrap(fmt.Sprintf(ee.txt, args...))
+	return ee.Wrap(ee.autoformat(args...))
 }
 
 // WrapCause returns a new derived ErrorEx that wraps a cause error.
 // Calling errors.Is() on returned error returns true for target
-// being the parent of both the returned error and the cause error
+// being the parent of either the returned error and the cause error
 // that it wraps.
 // Meaning:
 //  ErrE := New("ErrA").Wrap("ErrB").WrapCause("ErrE", New("ErrC").Wrap("ErrD"))
@@ -171,7 +220,7 @@ func (ee *ErrorEx) WrapCause(message string, err error) *ErrorEx {
 // its error message from specified args and this error message as a format
 // string. See WrapCause for more details.
 func (ee *ErrorEx) WrapCauseArgs(err error, args ...interface{}) *ErrorEx {
-	return &ErrorEx{cause: err, err: ee, txt: fmt.Sprintf(ee.txt, args...)}
+	return &ErrorEx{cause: err, err: ee, txt: ee.autoformat(args...)}
 }
 
 // Cause returns the error that caused this error, which could be nil.
@@ -188,7 +237,7 @@ func (ee *ErrorEx) WrapData(message string, data interface{}) *ErrorEx {
 // its error message from specified args and this error message as a format
 // string. See WrapData for more details.
 func (ee *ErrorEx) WrapDataArgs(data interface{}, args ...interface{}) *ErrorEx {
-	return &ErrorEx{data: data, err: ee, txt: fmt.Sprintf(ee.txt, args...)}
+	return &ErrorEx{data: data, err: ee, txt: ee.autoformat(args...)}
 }
 
 // Data returns custom data stored in this error, which could be nil.

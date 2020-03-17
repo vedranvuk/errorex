@@ -9,195 +9,131 @@ import (
 	"testing"
 )
 
-func TestWrap(t *testing.T) {
-
-	var (
-		ErrPackageA    = New("PackageA")
-		ErrPackageA1   = ErrPackageA.Wrap("Error 1")
-		ErrPackageA2   = ErrPackageA.Wrap("Error 2")
-		ErrPackageA21  = ErrPackageA2.Wrap("Warning 1")
-		ErrPackageA211 = ErrPackageA21.Wrap("Info 1")
-		ErrPackageAn   = ErrPackageA2.WrapFormat("Warning %d")
-
-		ErrPackageB = NewFormat("Error %d")
-	)
-
-	if truth := errors.Is(ErrPackageA, ErrPackageA); !truth {
-		t.Fatalf("Is [-1] failed, want 'true', got '%t'", truth)
+func TestNew(t *testing.T) {
+	if New("test error").Error() != "test error" {
+		t.Fatal()
 	}
-
-	if truth := errors.Is(ErrPackageAn, ErrPackageA2); !truth {
-		t.Fatalf("Is [0] failed, want 'true', got '%t'", truth)
+	if New("%s error").Error() != "%s error" {
+		t.Fatal()
 	}
-
-	if truth := errors.Is(ErrPackageAn, ErrPackageA1); truth {
-		t.Fatalf("Is [1] failed, want 'false', got '%t'", truth)
+	if s := New("%s error").WrapArgs("test").Error(); s != "%s error: test" {
+		t.Fatal(s)
 	}
-
-	if truth := errors.Is(ErrPackageAn, ErrPackageA); !truth {
-		t.Fatalf("Is [2] failed, want 'true', got '%t'", truth)
-	}
-
-	if truth := errors.Is(ErrPackageA21, ErrPackageA2); !truth {
-		t.Fatalf("Is [3] failed, want 'true', got '%t'", truth)
-	}
-
-	if truth := errors.Is(ErrPackageA21, ErrPackageA); !truth {
-		t.Fatalf("Is [4] failed, want 'true', got '%t'", truth)
-	}
-
-	if msg := ErrPackageA21.Error(); msg != "PackageA: Error 2 > Warning 1" {
-		t.Fatalf("Error failed, want 'PackageA: Error 2 > Warning 1', got '%s'", msg)
-	}
-
-	ErrPackageAx := ErrPackageAn.WrapArgs(42)
-	if msg := ErrPackageAx.Error(); msg != "PackageA: Error 2 > Warning 42" {
-		t.Fatalf("Format() error, want 'PackageA: Error 2 > Warning 42', got '%s'", msg)
-	}
-
-	if msg := ErrPackageA211.Error(); msg != "PackageA: Error 2; Warning 1 > Info 1" {
-		t.Fatalf("Error failed, want 'PackageA: Error 2; Warning 1 > Info 1', got '%s'", msg)
-	}
-
-	if truth := errors.Is(ErrPackageAx, ErrPackageAn); !truth {
-		t.Fatalf("Is [5] failed, want 'true', got '%t'", truth)
-	}
-
-	if truth := errors.Is(ErrPackageAx, ErrPackageA); !truth {
-		t.Fatalf("Is [6] failed, want 'true', got '%t'", truth)
-	}
-
-	ErrPackageBx := ErrPackageB.WrapArgs(69)
-	if msg := ErrPackageBx.Error(); msg != "Error 69" {
-		t.Fatalf("WrapArgs() failed, want 'Error 69', got '%s'", msg)
-	}
-
 }
 
-func TestIs(t *testing.T) {
-
-	var (
-		ErrBaseA    = New("baseA")
-		ErrDerivedA = ErrBaseA.Wrap("derivedA")
-
-		ErrBaseB    = New("baseB")
-		ErrDerivedB = ErrBaseB.Wrap("derivedB")
-	)
-
-	funcB := func() error {
-		return ErrDerivedB
+func TestNewFormat(t *testing.T) {
+	if NewFormat("%s error").WrapArgs("test").Error() != "test error" {
+		t.Fatal()
 	}
+}
 
-	funcA := func() error {
-		err := funcB()
-		return ErrDerivedA.WrapCause("new", err)
+func TestWrap(t *testing.T) {
+	if New("base").Wrap("sub1").Error() != "base: sub1" {
+		t.Fatal()
 	}
-
-	err := funcA()
-
-	if truth := errors.Is(err, ErrBaseA); !truth {
-		t.Fatalf("Is(baseA) failed")
+	if New("base").Wrap("sub1").Wrap("sub2").Error() != "base: sub1 > sub2" {
+		t.Fatal()
 	}
-
-	if truth := errors.Is(err, ErrBaseB); !truth {
-		t.Fatalf("Is(baseB) failed")
+	if New("base").Wrap("sub1").Wrap("sub2").Wrap("sub3").Error() != "base: sub1; sub2 > sub3" {
+		t.Fatal()
 	}
+	if New("base").Wrap("sub1").Wrap("sub2").Wrap("sub3").Wrap("sub4").Error() != "base: sub1; sub2; sub3 > sub4" {
+		t.Fatal()
+	}
+}
 
-	if err.Error() != "baseA: derivedA > new < baseB: derivedB" {
-		t.Fatal("fail")
+func TestWrapFormat(t *testing.T) {
+	if New("base").WrapFormat("sub%s").WrapArgs("1").Error() != "base: sub1" {
+		t.Fatal()
+	}
+	if New("base").WrapFormat("sub%s").WrapArgs("1").WrapFormat("sub%s").WrapArgs("2").Error() != "base: sub1 > sub2" {
+		t.Fatal()
+	}
+	if New("base").WrapFormat("sub%s").WrapArgs("1").WrapFormat("sub%s").WrapArgs("2").WrapFormat("sub%s").WrapArgs("3").Error() != "base: sub1; sub2 > sub3" {
+		t.Fatal()
+	}
+	if New("base").WrapFormat("sub%s").WrapArgs("1").WrapFormat("sub%s").WrapArgs("2").WrapFormat("sub%s").WrapArgs("3").WrapFormat("sub%s").WrapArgs("4").Error() != "base: sub1; sub2; sub3 > sub4" {
+		t.Fatal()
 	}
 }
 
 func TestCause(t *testing.T) {
-
-	ErrA := New("ErrA")
-	ErrB := ErrA.Wrap("ErrB")
-
-	ErrC := New("ErrC")
-	ErrD := ErrC.WrapFormat("Err%s")
-
-	ErrE := ErrB.WrapCause("ErrE", ErrD.WrapArgs("X"))
-
-	if s := ErrE.Error(); s != "ErrA: ErrB > ErrE < ErrC: ErrX" {
-		t.Fatalf("TestCause failed, want 'ErrA: ErrB > ErrE < ErrC: ErrX', got '%s'", s)
+	if New("base").Wrap("sub1").WrapCause("fail", New("cause")).Error() != "base: sub1 > fail < cause" {
+		t.Fatal()
 	}
-}
-
-var (
-	ErrApp       = New("command")
-	ErrAppSub    = ErrApp.Wrap("method")
-	ErrAppSubVar = ErrAppSub.WrapFormat("detail '%s'")
-
-	ErrPkg       = New("package")
-	ErrPkgSub    = ErrPkg.Wrap("method")
-	ErrPkgSubVar = ErrPkgSub.WrapFormat("detail: '%s'")
-
-	ErrMiddle       = New("middleware")
-	ErrMiddleSub    = ErrMiddle.Wrap("method")
-	ErrMiddleSubVar = ErrMiddleSub.WrapFormat("detail: '%s'")
-)
-
-type Middle struct{}
-
-func (m *Middle) Bad() error {
-	return ErrMiddleSubVar.WrapArgs("1337")
-}
-
-type Pkg struct {
-	middle *Middle
-}
-
-func (p *Pkg) Bad() error {
-	return ErrPkgSubVar.WrapCauseArgs(p.middle.Bad(), "69")
-}
-
-type App struct {
-	pkg *Pkg
-}
-
-func (a *App) Bad() error {
-	return ErrAppSubVar.WrapCauseArgs(a.pkg.Bad(), "42")
-}
-
-func TestMultiLevel(t *testing.T) {
-	prog := &App{&Pkg{&Middle{}}}
-	err := prog.Bad()
-	if s := err.Error(); s != "command: method > detail '42' < package: method > detail: '69' < middleware: method > detail: '1337'" {
-		t.Fatalf("Multilevel fail, want 'command: method > detail '42' < package: method > detail: '69' < middleware: method > detail: '1337'', got %s", s)
+	if New("base").Wrap("sub1").WrapCause("fail", New("cause").WrapCause("deep", New("cause"))).Error() != "base: sub1 > fail < cause: deep < cause" {
+		t.Fatal()
 	}
+	if New("base").WrapFormat("%s").WrapCauseArgs(New("cause"), "error").Error() != "base: error < cause" {
+		t.Fatal()
+	}
+
+	base := New("base").WrapCause("base error", New("basecause"))
+	cause := New("cause").WrapCause("cause error", New("causecause"))
+	if s := base.WrapCause("error", cause).Error(); s != "base: base error < basecause > error < cause: cause error < causecause" {
+		t.Fatal(s)
+	}
+
 }
 
 func TestData(t *testing.T) {
 
-	type Data struct {
-		Line   int
-		Column int
+	data := "test"
+
+	if New("base").WrapData("error", data).Data().(string) != data {
+		t.Fatal()
 	}
 
-	base := New("base").WrapFormat("error at '%d:%d'")
-
-	err := base.WrapDataArgs(&Data{32, 64}, 32, 64)
-	if err.Error() != "base: error at '32:64'" {
-		t.Fatal("Data failed")
+	if New("base").WrapFormat("%s").WrapDataArgs(data, "error").Data().(string) != data {
+		t.Fatal()
 	}
-
-	data, ok := (err.Data()).(*Data)
-	if !ok {
-		t.Fatal("Data failed")
-	}
-	if data.Line != 32 || data.Column != 64 {
-		t.Fatal("Data failed")
-	}
-
 }
 
 func TestExtra(t *testing.T) {
-	err := New("base error")
-	err.Extra(New("Extra 1"))
-	err.Extra(New("Extra 2"))
-	err.Extra(New("Extra 3"))
-	s := err.Error()
-	if s != "base error; Extra 1; Extra 2; Extra 3" {
-		t.Fatal("Extra failed")
+
+	extra1 := New("extra1")
+	extra2 := New("extra2")
+	extra3 := New("extra3")
+	err := New("base").Extra(extra1).Extra(extra2).Extra(extra3)
+
+	if err.Error() != "base + extra1 + extra2 + extra3" {
+		t.Fatal()
+	}
+
+	extras := err.Extras()
+	if len(extras) != 3 {
+		t.Fatal()
+	}
+	if extras[0] != extra1 {
+		t.Fatal()
+	}
+	if extras[1] != extra2 {
+		t.Fatal()
+	}
+	if extras[2] != extra3 {
+		t.Fatal()
+	}
+}
+
+func TestUnwrap(t *testing.T) {
+	base := New("base")
+	wrap := base.Wrap("wrap")
+	if wrap.Unwrap() != base {
+		t.Fatal()
+	}
+}
+
+func TestIs(t *testing.T) {
+	base := New("base")
+	wrap1 := base.Wrap("wrap1")
+	wrap2 := wrap1.Wrap("wrap2")
+	basecause := New("basecause")
+	cause := basecause.Wrap("cause")
+	err := wrap2.WrapCause("error", cause)
+	if !errors.Is(err, basecause) {
+		t.Fatal()
+	}
+	if !errors.Is(err, base) {
+		t.Fatal()
 	}
 }

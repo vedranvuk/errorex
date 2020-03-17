@@ -1,8 +1,8 @@
 # ErrorEx
 
-Package errorex provides additional error functionality. For now, implements a single type that helps with common error usage patterns introduced in `go1.13`, which it requires.
+Package errorex implements the error interface with a custom error type that supports pre-formatting, inheritance, causes, custom data and extra error payloads.
 
-API reflects the mostly-implemented-by-other-error-packages approach with Causer interfaces.
+It requires`go1.13`.
 
 ## Example
 
@@ -118,7 +118,7 @@ for _, e := range err.Extras() {
 }
 
 fmt.Println(err)
-// Output: base error; Extra 1; Extra 2; Extra 3
+// Output: base error + Extra 1 + Extra 2 + Extra 3
 ```
 
 ## Status
