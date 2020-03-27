@@ -11,7 +11,7 @@ import (
 )
 
 // ErrorEx is an extended error type which provides utilities for
-// error inheritance, causes and custom data payloads.
+// error inheritance, causes, custom data payloads and extra errors.
 // ErrorEx is not safe for concurrent use.
 type ErrorEx struct {
 	// cause is the stored cause error.
@@ -60,11 +60,12 @@ func (ee *ErrorEx) extrastring() (message string) {
 //
 // It uses a custom printing scheme:
 //
-// First error in the chain is always separated with a ':' from derived error messages.
-// Wrapped errors are separated with a ';' if there are more than 3 wrap levels and the
-// error is between 3rd and last level.
-// Last error in the wrap stack is always separated with a '>' unless it directly wraps
-// the base error in which case it is separated by ':'.
+// First error in the chain is always separated with a ':' from derived error
+// messages.
+// Wrapped errors are separated with a ';' if there are more than 3 wrap levels
+// and the error is between 3rd and last level.
+// Last error in the wrap stack is always separated with a '>' unless it
+// directly wraps the base error in which case it is separated by ':'.
 //
 // Example:
 //  New("base").Wrap("sub1").Error()
@@ -82,7 +83,8 @@ func (ee *ErrorEx) extrastring() (message string) {
 //  New("base").Wrap("sub1").Wrap("sub2").Wrap("sub3").Wrap("sub4").Error()
 //  Output: base: sub1; sub2; sub3 > sub4
 //
-// Cause errors format the same way and are appended to final error after a '<' prefix.
+// Cause errors format the same way and are appended to final error after a '<'
+// prefix.
 //
 // Example:
 //  New("base").WrapCause("error", New("cause"))
@@ -94,12 +96,16 @@ func (ee *ErrorEx) extrastring() (message string) {
 //  New("base").Wrap("sub").Extra(New("extra"))
 //  Output: base: sub + extra
 //
-// Errors created with NewFormat and WrapFormat are format placeholder errors and are
-// not printed when printing the wrap chain.
+// Errors created with NewFormat and WrapFormat are format placeholder errors
+// and are not printed when printing the wrap chain.
 //
-// Errors with an empty message are skipped when printing, regardless if they carry
-// causes or extra errors.
+// Errors with an empty message are skipped when printing, regardless if they
+// carry causes or extra errors.
 func (ee *ErrorEx) Error() (message string) {
+	// Skip empty errors.
+	if ee.txt == "" {
+		return ""
+	}
 	// Set base message.
 	if !ee.fmt {
 		message = ee.txt
@@ -154,6 +160,7 @@ func (ee *ErrorEx) is(target, cause error) (is bool) {
 }
 
 // Is implements errors.Is().
+// Is returns true if either this or the cause error are siblings of target.
 func (ee *ErrorEx) Is(target error) bool {
 	return ee.is(target, ee.cause)
 }

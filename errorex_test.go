@@ -73,7 +73,6 @@ func TestCause(t *testing.T) {
 	if s := base.WrapCause("error", cause).Error(); s != "base: base error < basecause > error < cause: cause error < causecause" {
 		t.Fatal(s)
 	}
-
 }
 
 func TestData(t *testing.T) {
