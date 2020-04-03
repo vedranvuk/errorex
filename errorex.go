@@ -240,6 +240,13 @@ func (ee *ErrorEx) WrapData(message string, data interface{}) *ErrorEx {
 	return &ErrorEx{data: data, err: ee, txt: message}
 }
 
+// WrapDataFormat wraps an error like WrapFormat but attatches data to it.
+func (ee *ErrorEx) WrapDataFormat(format string, data interface{}) *ErrorEx {
+	err := ee.WrapFormat(format)
+	err.data = data
+	return err
+}
+
 // WrapDataArgs derives a new error which wraps custom data and formats
 // its error message from specified args and this error message as a format
 // string. See WrapData for more details.
@@ -247,9 +254,23 @@ func (ee *ErrorEx) WrapDataArgs(data interface{}, args ...interface{}) *ErrorEx 
 	return &ErrorEx{data: data, err: ee, txt: ee.autoformat(args...)}
 }
 
-// Data returns custom data stored in this error, which could be nil.
-func (ee *ErrorEx) Data() interface{} {
-	return ee.data
+// Data returns first set data down the complete error wrap chain starting from
+// this error. Errors not of ErrorEx type are skipped. If no set data is found
+// result will be nil.
+func (ee *ErrorEx) Data() (data interface{}) {
+	for err := error(ee); ; {
+		if err == nil {
+			break
+		}
+		if eex, ok := err.(*ErrorEx); ok {
+			data = eex.data
+			if data != nil {
+				break
+			}
+		}
+		err = errors.Unwrap(err)
+	}
+	return
 }
 
 // Extra appends an extra error to this error and returns self.

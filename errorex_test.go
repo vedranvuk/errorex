@@ -86,6 +86,10 @@ func TestData(t *testing.T) {
 	if New("base").WrapFormat("%s").WrapDataArgs(data, "error").Data().(string) != data {
 		t.Fatal()
 	}
+
+	if New("base").WrapDataFormat("%s", data).WrapArgs("test").Data().(string) != data {
+		t.Fatal()
+	}
 }
 
 func TestExtra(t *testing.T) {
