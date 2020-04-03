@@ -254,16 +254,21 @@ func (ee *ErrorEx) WrapDataArgs(data interface{}, args ...interface{}) *ErrorEx 
 	return &ErrorEx{data: data, err: ee, txt: ee.autoformat(args...)}
 }
 
-// Data returns first set data down the complete error wrap chain starting from
+// Data returns this error data, which could be nil.
+func (ee *ErrorEx) Data() (data interface{}) {
+	return ee.data
+}
+
+// AnyData returns first set data down the complete error wrap chain starting from
 // this error. Errors not of ErrorEx type are skipped. If no set data is found
 // result will be nil.
-func (ee *ErrorEx) Data() (data interface{}) {
+func (ee *ErrorEx) AnyData() (data interface{}) {
 	for err := error(ee); ; {
 		if err == nil {
 			break
 		}
 		if eex, ok := err.(*ErrorEx); ok {
-			data = eex.data
+			data = eex.Data()
 			if data != nil {
 				break
 			}

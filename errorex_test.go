@@ -87,7 +87,7 @@ func TestData(t *testing.T) {
 		t.Fatal()
 	}
 
-	if New("base").WrapDataFormat("%s", data).WrapArgs("test").Data().(string) != data {
+	if New("base").WrapDataFormat("%s", data).WrapArgs("test").AnyData().(string) != data {
 		t.Fatal()
 	}
 }
