@@ -2,7 +2,7 @@
 
 Package errorex implements the error interface with a custom error type that supports pre-formatting, inheritance, causes, custom data and extra error payloads.
 
-It requires`go1.13`.
+It requires `go1.13`.
 
 ## Example
 

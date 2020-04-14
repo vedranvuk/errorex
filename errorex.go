@@ -14,17 +14,17 @@ import (
 // error inheritance, causes, custom data payloads and extra errors.
 // ErrorEx is not safe for concurrent use.
 type ErrorEx struct {
+	// txt is this error text/message/format string.
+	txt string
+	// err is optionally wrapped error.
+	err error
+	// fmt specifies if this error is a placeholder error whose
+	// txt is used as a format string for derived errors.
+	fmt bool
 	// cause is the stored cause error.
 	cause error
 	// data is the stored custom data.
 	data interface{}
-	// err is optionally wrapped error.
-	err error
-	// txt is this error text/message/format string.
-	txt string
-	// fmt specifies if this error is a placeholder error whose
-	// txt is used as a format string for derived errors.
-	fmt bool
 	// Extra are extra errors carried with this error.
 	extra []error
 }
