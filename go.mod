@@ -1,3 +1,3 @@
-module github.com/vedranvuk/errorex
+module errorex
 
-go 1.13
+go 1.14
