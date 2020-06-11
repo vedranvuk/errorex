@@ -147,7 +147,11 @@ func (ee *ErrorEx) Error() (message string) {
 				}
 				stack = stack[:len(stack)-1]
 			}
-			message = fmt.Sprintf("%s > %s", msg, message)
+			if message == "" {
+				message = msg
+			} else {
+				message = fmt.Sprintf("%s > %s", msg, message)
+			}
 		}
 	}
 
