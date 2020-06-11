@@ -118,6 +118,32 @@ func TestExtra(t *testing.T) {
 	}
 }
 
+func TestExtraWrap(t *testing.T) {
+
+	extra1 := New("extra1")
+	extra2 := New("extra2")
+	extra3 := New("extra3")
+	err := New("base").Wrap("").Extra(extra1).Extra(extra2).Extra(extra3)
+
+	if err.Error() != "base + extra1 + extra2 + extra3" {
+		t.Fatal()
+	}
+
+	extras := err.Extras()
+	if len(extras) != 3 {
+		t.Fatal()
+	}
+	if extras[0] != extra1 {
+		t.Fatal()
+	}
+	if extras[1] != extra2 {
+		t.Fatal()
+	}
+	if extras[2] != extra3 {
+		t.Fatal()
+	}
+}
+
 func TestUnwrap(t *testing.T) {
 	base := New("base")
 	wrap := base.Wrap("wrap")

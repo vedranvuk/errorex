@@ -102,17 +102,20 @@ func (ee *ErrorEx) extrastring() (message string) {
 // Errors with an empty message are skipped when printing, regardless if they
 // carry causes or extra errors.
 func (ee *ErrorEx) Error() (message string) {
-	// Skip empty errors.
-	if ee.txt == "" {
-		return ""
-	}
+
 	// Set base message.
+	if ee.txt == "" {
+		if ee.err != nil {
+			message = ee.err.Error()
+		}
+	}
 	if !ee.fmt {
 		message = ee.txt
 	}
 	if ee.cause != nil {
 		message = fmt.Sprintf("%s < %v", message, ee.cause)
 	}
+
 	// Build wrap stack.
 	stack := []string{}
 	for eex, ok := (ee.err).(*ErrorEx); ok; eex, ok = (eex.err).(*ErrorEx) {
@@ -124,10 +127,15 @@ func (ee *ErrorEx) Error() (message string) {
 			stack[len(stack)-1] += fmt.Sprintf(" < %s", cause.Error())
 		}
 	}
+
 	// Format stack.
 	if len(stack) > 0 {
 		if len(stack) == 1 {
-			message = fmt.Sprintf("%s: %s", stack[0], message)
+			if message == "" {
+				message = stack[0]
+			} else {
+				message = fmt.Sprintf("%s: %s", stack[0], message)
+			}
 		} else {
 			msg := fmt.Sprintf("%s:", stack[len(stack)-1])
 			stack = stack[:len(stack)-1]
@@ -142,8 +150,10 @@ func (ee *ErrorEx) Error() (message string) {
 			message = fmt.Sprintf("%s > %s", msg, message)
 		}
 	}
+
 	// Append extra.
 	message += ee.extrastring()
+
 	return
 }
 
