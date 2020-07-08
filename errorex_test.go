@@ -58,6 +58,9 @@ func TestWrapFormat(t *testing.T) {
 }
 
 func TestCause(t *testing.T) {
+	if New("base").Wrap("sub1").WrapCause("", New("cause")).Error() != "base: sub1 < cause" {
+		t.Fatal()
+	}
 	if New("base").Wrap("sub1").WrapCause("fail", New("cause")).Error() != "base: sub1 > fail < cause" {
 		t.Fatal()
 	}

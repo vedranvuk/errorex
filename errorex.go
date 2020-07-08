@@ -112,9 +112,6 @@ func (ee *ErrorEx) Error() (message string) {
 	if !ee.fmt {
 		message = ee.txt
 	}
-	if ee.cause != nil {
-		message = fmt.Sprintf("%s < %v", message, ee.cause)
-	}
 
 	// Build wrap stack.
 	stack := []string{}
@@ -147,12 +144,19 @@ func (ee *ErrorEx) Error() (message string) {
 				}
 				stack = stack[:len(stack)-1]
 			}
-			if message == "" {
-				message = msg
-			} else {
-				message = fmt.Sprintf("%s > %s", msg, message)
+			if msg != "" {
+				if message == "" {
+					message = msg
+				} else {
+					message = fmt.Sprintf("%s > %s", msg, message)
+				}
 			}
 		}
+	}
+
+	// Append cause.
+	if ee.cause != nil {
+		message = fmt.Sprintf("%s < %v", message, ee.cause)
 	}
 
 	// Append extra.
