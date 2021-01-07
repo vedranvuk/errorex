@@ -36,5 +36,5 @@ func WrapCause(err, cause error, message string) error {
 	if message == "" {
 		return fmt.Errorf("%w: %v", err, cause)
 	}
-	return fmt.Errorf("%w: %v: %s", err, cause, message)
+	return fmt.Errorf("%w: %s: %v", err, message, cause)
 }
